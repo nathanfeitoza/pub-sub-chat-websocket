@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "8081:80"
+      - "8082:8050"
+    depends_on:
+      - api
+    networks:
+      - websocker_network
+    
+  redis:
+    image: redis:latest
+    networks:
+      - websocker_network
+    ports:
+      - 6379:6379
+    
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: messages
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - websocker_network
+
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgres://postgres:123456@postgres:5432/messages
+      REDIS_URL: redis://redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    volumes:
+      - .:/app
+    depends_on:
+      - postgres
+      - redis
+    expose:
+      - "3001:3000"
+    networks:
+      - websocker_network
+
+volumes:
+  postgres_data:
+
+networks:
+  websocker_network:
+    driver: bridge
